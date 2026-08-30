@@ -2,6 +2,8 @@
 
 A Windows 10 system tray utility that shows the next PID departure from one stop.
 
+**Download:** [PublicTransportDepartures.exe](https://github.com/martinsladek/public-transport-departures/releases/latest/download/PublicTransportDepartures.exe)
+
 - **Hover** — next departure (line, destination, clock time, whole minutes left)
 - **Left click** — the same fact in a balloon
 - **Icon** — whole minutes remaining, rounded down

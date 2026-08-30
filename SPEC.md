@@ -279,7 +279,7 @@ src/Departures.Tests/
 
 `.gitignore`: `bin/`, `obj/`, `dist/`, `.vs/`, `*.user`, `config.json`, `.env`.
 
-README is English only. Do not put a download link in README until a public Release binary exists.
+README is English only. Public download: [https://github.com/martinsladek/public-transport-departures/releases/latest/download/PublicTransportDepartures.exe](https://github.com/martinsladek/public-transport-departures/releases/latest/download/PublicTransportDepartures.exe). Merge to `main` does not create a Release; only a `v*` tag does.
 
 ## Out of scope (do not implement)
 

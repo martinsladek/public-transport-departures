@@ -2,11 +2,13 @@
 
 ## Releases
 
+Merge to `main` does **not** publish a GitHub Release. Remind the user of that on the next feature merge into `main`.
+
 Do **not** attach a locally built EXE to GitHub Releases and do not commit `dist/`.
 
-GitHub Actions publishes `PublicTransportDepartures.exe` when a tag matching `v*` is pushed (see `.github/workflows/release.yml`). After a public repository exists, the stable URL is `/releases/latest/download/PublicTransportDepartures.exe`.
+GitHub Actions publishes `PublicTransportDepartures.exe` when a tag matching `v*` is pushed (see `.github/workflows/release.yml`). The public URL is `/releases/latest/download/PublicTransportDepartures.exe`.
 
-To ship a build: commit to `main`, then `git tag vX.Y.Z` and `git push origin vX.Y.Z`. Local try does not need a tag.
+To ship a build: the work must already be on `main`, then `git tag vX.Y.Z` and `git push origin vX.Y.Z`. Local try does not need a tag.
 
 ## Local try
 
