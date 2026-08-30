@@ -9,6 +9,10 @@ static class AppPaths
 
     public static string ConfigFile => Path.Combine(DataDirectory, "config.json");
 
+    public static string GtfsDirectory => Path.Combine(DataDirectory, "gtfs");
+
+    public static string GtfsZip => Path.Combine(GtfsDirectory, "PID_GTFS.zip");
+
     public static string InstalledExe => Path.Combine(DataDirectory, "Odjezdy.exe");
 
     public static string LegacyConfigFile =>

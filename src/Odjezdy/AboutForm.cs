@@ -22,7 +22,7 @@ sealed class AboutForm : Form
         {
             Dock = DockStyle.Fill,
             ColumnCount = 1,
-            RowCount = 5,
+            RowCount = 6,
             AutoSize = true
         };
         layout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
@@ -43,6 +43,14 @@ sealed class AboutForm : Form
             Margin = new Padding(0, 0, 0, 16)
         };
 
+        var data = new Label
+        {
+            Text = Strings.AboutDataCredit,
+            AutoSize = true,
+            MaximumSize = new Size(420, 0),
+            Margin = new Padding(0, 0, 0, 16)
+        };
+
         var credit = new Label
         {
             Text = Strings.AboutCredit,
@@ -54,13 +62,14 @@ sealed class AboutForm : Form
         var links = new TableLayoutPanel
         {
             ColumnCount = 2,
-            RowCount = 1,
+            RowCount = 2,
             AutoSize = true,
             Margin = new Padding(0, 0, 0, 12)
         };
         links.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));
         links.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
         AddLinkRow(links, 0, Strings.Website, Strings.WebsiteUrl);
+        AddLinkRow(links, 1, Strings.GitHub, Strings.GitHubUrl);
 
         var buttons = new FlowLayoutPanel
         {
@@ -81,9 +90,10 @@ sealed class AboutForm : Form
 
         layout.Controls.Add(title, 0, 0);
         layout.Controls.Add(tagline, 0, 1);
-        layout.Controls.Add(credit, 0, 2);
-        layout.Controls.Add(links, 0, 3);
-        layout.Controls.Add(buttons, 0, 4);
+        layout.Controls.Add(data, 0, 2);
+        layout.Controls.Add(credit, 0, 3);
+        layout.Controls.Add(links, 0, 4);
+        layout.Controls.Add(buttons, 0, 5);
 
         Controls.Add(layout);
         AcceptButton = ok;
