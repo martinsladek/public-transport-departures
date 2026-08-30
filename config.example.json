@@ -1,13 +1,13 @@
 {
   "golemioApiKey": "",
-  "activeWatchId": "example",
+  "activeWatchId": "andel-b",
   "watches": [
     {
-      "id": "example",
-      "label": "Example · 22",
-      "stopId": "U1040Z1P",
-      "routeShortName": "22",
-      "headsignContains": "Braník"
+      "id": "andel-b",
+      "label": "Anděl · B",
+      "stopId": "U1040Z101P",
+      "routeShortName": "B",
+      "headsignContains": ""
     }
   ]
 }

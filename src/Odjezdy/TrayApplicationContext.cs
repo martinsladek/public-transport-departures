@@ -12,11 +12,15 @@ sealed class TrayApplicationContext : ApplicationContext
     private readonly System.Windows.Forms.Timer _pollTimer;
     private AppConfig _config;
 
-    private IReadOnlyList<Departure> _board = [];
-    private BoardFetchStatus _lastStatus = BoardFetchStatus.Failed;
-    private DateTimeOffset? _lastOkAt;
-    private bool _fetching;
+    private IReadOnlyList<Departure> _gtfsBoard = [];
+    private IReadOnlyList<Departure> _golemioBoard = [];
+    private BoardFetchStatus _golemioStatus = BoardFetchStatus.MissingApiKey;
+    private HashSet<string> _parsedStops = new(StringComparer.OrdinalIgnoreCase);
+    private bool _downloading;
+    private bool _refreshing;
     private Icon? _icon;
+    private Form? _about;
+    private Form? _settings;
 
     public TrayApplicationContext()
     {
@@ -50,14 +54,14 @@ sealed class TrayApplicationContext : ApplicationContext
         _displayTimer.Tick += (_, _) => OnDisplayTick();
 
         _pollTimer = new System.Windows.Forms.Timer { Interval = 45_000 };
-        _pollTimer.Tick += (_, _) => _ = RefreshFromApiAsync();
+        _pollTimer.Tick += (_, _) => _ = RefreshAllAsync(forceDownload: false);
 
         SystemEvents.TimeChanged += OnSystemClockChanged;
         SystemEvents.PowerModeChanged += OnPowerModeChanged;
 
         ApplyIcon(null);
         _pollTimer.Start();
-        _ = RefreshFromApiAsync();
+        _ = RefreshAllAsync(forceDownload: false);
     }
 
     private void OnTrayMouseClick(object? sender, MouseEventArgs e)
@@ -66,59 +70,92 @@ sealed class TrayApplicationContext : ApplicationContext
             return;
 
         ReloadConfig();
-        if (_board.Count == 0 && !string.IsNullOrWhiteSpace(_config.GolemioApiKey))
-            _ = RefreshFromApiAsync();
-
         ShowBalloon(BuildBalloonText());
     }
 
-    private async Task RefreshFromApiAsync()
+    private async Task RefreshAllAsync(bool forceDownload)
     {
-        if (_fetching)
+        if (_refreshing)
             return;
 
-        ReloadConfig();
+        _refreshing = true;
+        try
+        {
+            ReloadConfig();
+            await EnsureGtfsAsync(forceDownload).ConfigureAwait(true);
+            await RefreshGolemioAsync().ConfigureAwait(true);
+            RefreshPresentation();
+        }
+        finally
+        {
+            _refreshing = false;
+        }
+    }
+
+    private async Task EnsureGtfsAsync(bool forceDownload)
+    {
+        bool needDownload = forceDownload || !GtfsTimetable.ZipLooksFresh();
+        if (needDownload)
+        {
+            _downloading = !GtfsTimetable.ZipExists;
+            if (_downloading)
+            {
+                RefreshPresentation();
+                ShowBalloon(Strings.Downloading);
+            }
+
+            bool ok = await GtfsTimetable.DownloadAsync(CancellationToken.None).ConfigureAwait(true);
+            _downloading = false;
+            if (forceDownload)
+                ShowBalloon(ok ? Strings.TimetableReady : Strings.DownloadFailed);
+            else if (!ok && !GtfsTimetable.ZipExists)
+                ShowBalloon(Strings.DownloadFailed);
+        }
+
+        HashSet<string> stops = StopIds();
+        bool sameStops = stops.SetEquals(_parsedStops);
+        if (sameStops && _gtfsBoard.Count > 0 && !forceDownload && !needDownload)
+            return;
+
+        IReadOnlyList<Departure> loaded = await Task.Run(() =>
+            GtfsTimetable.LoadDepartures(stops, DateTimeOffset.Now)).ConfigureAwait(true);
+        _gtfsBoard = loaded;
+        _parsedStops = stops;
+    }
+
+    private async Task RefreshGolemioAsync()
+    {
         WatchConfig? watch = _config.ActiveWatch;
-        if (string.IsNullOrWhiteSpace(_config.GolemioApiKey))
+        if (string.IsNullOrWhiteSpace(_config.GolemioApiKey) || watch is null || string.IsNullOrWhiteSpace(watch.StopId))
         {
-            _lastStatus = BoardFetchStatus.MissingApiKey;
-            RefreshPresentation();
+            _golemioStatus = BoardFetchStatus.MissingApiKey;
+            _golemioBoard = [];
             return;
         }
 
-        if (watch is null || string.IsNullOrWhiteSpace(watch.StopId))
-        {
-            _lastStatus = BoardFetchStatus.Failed;
-            RefreshPresentation();
-            return;
-        }
-
-        _fetching = true;
         try
         {
             BoardFetchResult result = await GolemioClient.FetchAsync(
                 _config.GolemioApiKey,
                 watch.StopId,
-                CancellationToken.None);
+                CancellationToken.None).ConfigureAwait(true);
 
-            if (result.Status == BoardFetchStatus.Ok)
-            {
-                _board = result.Departures;
-                _lastOkAt = DateTimeOffset.Now;
-            }
-
-            _lastStatus = result.Status;
+            _golemioStatus = result.Status;
+            _golemioBoard = result.Status == BoardFetchStatus.Ok ? result.Departures : [];
         }
         catch
         {
-            _lastStatus = BoardFetchStatus.Failed;
-        }
-        finally
-        {
-            _fetching = false;
-            RefreshPresentation();
+            _golemioStatus = BoardFetchStatus.Failed;
+            _golemioBoard = [];
         }
     }
+
+    private HashSet<string> StopIds() =>
+        _config.Watches
+            .Select(w => w.StopId)
+            .Where(id => !string.IsNullOrWhiteSpace(id))
+            .Select(id => id.Trim())
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
 
     private void OnDisplayTick()
     {
@@ -133,7 +170,7 @@ sealed class TrayApplicationContext : ApplicationContext
         int? minutes = next is null ? null : DepartureClock.DisplayedMinutes(next.Time, now);
 
         ApplyIcon(minutes);
-        _notifyIcon.Text = TruncateTip(BuildTooltip(next, minutes, now));
+        _notifyIcon.Text = TruncateTip(BuildTooltip(next, minutes));
         ScheduleDisplayTimer(next, now);
     }
 
@@ -143,7 +180,8 @@ sealed class TrayApplicationContext : ApplicationContext
         if (watch is null)
             return null;
 
-        return DepartureSelector.Next(_board, watch, now);
+        return DepartureSelector.Next(_golemioBoard, watch, now)
+            ?? DepartureSelector.Next(_gtfsBoard, watch, now);
     }
 
     private void ScheduleDisplayTimer(Departure? next, DateTimeOffset now)
@@ -161,75 +199,52 @@ sealed class TrayApplicationContext : ApplicationContext
         _displayTimer.Start();
     }
 
-    private string BuildTooltip(Departure? next, int? minutes, DateTimeOffset now)
+    private string BuildTooltip(Departure? next, int? minutes)
     {
+        if (_downloading)
+            return Strings.Downloading;
+
         if (NeedsSetup(out string setup))
             return setup;
 
         if (next is null || minutes is null)
-            return WithOffline(Strings.NoUpcoming, now);
+            return Strings.NoUpcoming;
 
-        return WithOffline(
-            $"{FormatLine(next)}  {FormatClock(next.Time)} {Strings.TooltipMinutes(minutes.Value)}",
-            now);
+        return $"{FormatLine(next)}  {FormatClock(next.Time)} {Strings.TooltipMinutes(minutes.Value)}";
     }
 
     private string BuildBalloonText()
     {
         DateTimeOffset now = DateTimeOffset.Now;
+        if (_downloading)
+            return Strings.Downloading;
+
         if (NeedsSetup(out string setup))
-            return $"{setup}{Environment.NewLine}{Environment.NewLine}{Strings.ConfigPathPrefix}{Environment.NewLine}{AppPaths.ConfigFile}";
+            return setup;
 
         Departure? next = CurrentDeparture(now);
         int? minutes = next is null ? null : DepartureClock.DisplayedMinutes(next.Time, now);
         if (next is null || minutes is null)
-            return WithOffline(Strings.NoUpcoming, now);
+            return Strings.NoUpcoming;
 
-        return WithOffline(
-            $"{FormatLine(next)}{Environment.NewLine}{FormatClock(next.Time)}  ·  {Strings.BalloonMinutes(minutes.Value)}",
-            now);
+        string body = $"{FormatLine(next)}{Environment.NewLine}{FormatClock(next.Time)}  ·  {Strings.BalloonMinutes(minutes.Value)}";
+        if (_golemioStatus == BoardFetchStatus.Rejected)
+            return $"{body}{Environment.NewLine}{Strings.ApiKeyRejected}";
+
+        return body;
     }
 
     private bool NeedsSetup(out string message)
     {
-        if (string.IsNullOrWhiteSpace(_config.GolemioApiKey))
-        {
-            message = Strings.MissingApiKey;
-            return true;
-        }
-
         WatchConfig? watch = _config.ActiveWatch;
         if (watch is null || string.IsNullOrWhiteSpace(watch.StopId))
         {
-            message = Strings.MissingStop;
-            return true;
-        }
-
-        if (_lastStatus == BoardFetchStatus.Rejected && _lastOkAt is null)
-        {
-            message = Strings.ApiKeyRejected;
-            return true;
-        }
-
-        if (_lastStatus == BoardFetchStatus.Failed && _lastOkAt is null)
-        {
-            message = Strings.RefreshFailed;
+            message = Strings.AddStopInSettings;
             return true;
         }
 
         message = "";
         return false;
-    }
-
-    private string WithOffline(string text, DateTimeOffset now)
-    {
-        if (_lastStatus == BoardFetchStatus.Ok)
-            return text;
-
-        if (_lastOkAt is DateTimeOffset ok && CurrentDeparture(now) is not null)
-            return $"{text} · {Strings.Offline}";
-
-        return _lastStatus == BoardFetchStatus.Rejected ? Strings.ApiKeyRejected : text;
     }
 
     private static string FormatLine(Departure next)
@@ -271,12 +286,7 @@ sealed class TrayApplicationContext : ApplicationContext
         }
 
         _menu.Items.Add(new ToolStripSeparator());
-        _menu.Items.Add(new ToolStripMenuItem(Strings.Settings) { Enabled = false });
-        _menu.Items.Add(new ToolStripMenuItem(Strings.StartWithWindows, null, (_, _) => ToggleAutostart())
-        {
-            Checked = Autostart.IsEnabled,
-            CheckOnClick = false
-        });
+        _menu.Items.Add(new ToolStripMenuItem(Strings.Settings, null, (_, _) => ShowSettings()));
         _menu.Items.Add(new ToolStripSeparator());
         _menu.Items.Add(new ToolStripMenuItem(Strings.About, null, (_, _) => ShowAbout()));
         _menu.Items.Add(new ToolStripMenuItem(Strings.Exit, null, (_, _) => Quit()));
@@ -289,28 +299,27 @@ sealed class TrayApplicationContext : ApplicationContext
 
         _config.ActiveWatchId = watch.Id;
         _config.Save();
-        _ = RefreshFromApiAsync();
+        _ = RefreshAllAsync(forceDownload: false);
     }
 
-    private void ToggleAutostart()
+    private void ShowSettings()
     {
-        try
-        {
-            if (Autostart.IsEnabled)
-                Autostart.Disable();
-            else
-                Autostart.Enable();
-        }
-        catch
-        {
-            ShowBalloon(Strings.AutostartFailed);
-        }
+        DialogResult result = TrayDialog.ShowOnce(
+            ref _settings,
+            _sync,
+            () => new SettingsForm(AppConfig.Load(), () => RefreshAllAsync(forceDownload: true)));
+
+        if (result != DialogResult.OK)
+            return;
+
+        ReloadConfig();
+        _parsedStops.Clear();
+        _ = RefreshAllAsync(forceDownload: false);
     }
 
     private void ShowAbout()
     {
-        using var about = new AboutForm();
-        about.ShowDialog();
+        TrayDialog.ShowOnce(ref _about, _sync, () => new AboutForm());
     }
 
     private void ShowBalloon(string text)
@@ -334,13 +343,13 @@ sealed class TrayApplicationContext : ApplicationContext
         BeginInvokeOnTray(() =>
         {
             RefreshPresentation();
-            _ = RefreshFromApiAsync();
+            _ = RefreshAllAsync(forceDownload: false);
         });
 
     private void OnPowerModeChanged(object sender, PowerModeChangedEventArgs e)
     {
         if (e.Mode == PowerModes.Resume)
-            BeginInvokeOnTray(() => _ = RefreshFromApiAsync());
+            BeginInvokeOnTray(() => _ = RefreshAllAsync(forceDownload: false));
     }
 
     private void BeginInvokeOnTray(Action action)

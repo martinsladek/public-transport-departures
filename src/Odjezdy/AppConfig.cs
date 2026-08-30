@@ -99,16 +99,16 @@ sealed class AppConfig
         var created = new AppConfig
         {
             GolemioApiKey = "",
-            ActiveWatchId = "example",
+            ActiveWatchId = "andel-b",
             Watches =
             [
                 new WatchConfig
                 {
-                    Id = "example",
-                    Label = "Example · 22",
-                    StopId = "U1040Z1P",
-                    RouteShortName = "22",
-                    HeadsignContains = "Braník"
+                    Id = "andel-b",
+                    Label = "Anděl · B",
+                    StopId = "U1040Z101P",
+                    RouteShortName = "B",
+                    HeadsignContains = ""
                 }
             ]
         };

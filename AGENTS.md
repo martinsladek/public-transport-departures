@@ -14,7 +14,7 @@ Stop the running `Odjezdy.exe` first — otherwise `dotnet publish` fails becaus
 
 ## Secrets
 
-The Golemio API key belongs only in `%LocalAppData%\Odjezdy\config.json`. Never commit a real key. `config.example.json` stays empty.
+The optional Golemio API key belongs only in `%LocalAppData%\Odjezdy\config.json`. Never commit a real key. `config.example.json` stays empty. Do not commit `%LocalAppData%\Odjezdy\gtfs\` or `dist/`.
 
 ## Build
 
