@@ -5,9 +5,9 @@ VisualStudioVersion = 17.0.31903.59
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{FE8916BF-1319-4A73-A0F5-6DFB7D2C0A39}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Odjezdy", "src\Odjezdy\Odjezdy.csproj", "{C7ECE15A-9081-4F10-88B3-93B38FF1DAFF}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Departures", "src\Departures\Departures.csproj", "{C7ECE15A-9081-4F10-88B3-93B38FF1DAFF}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Odjezdy.Tests", "src\Odjezdy.Tests\Odjezdy.Tests.csproj", "{5DD20705-FCB2-4832-B9A2-437C0EBF2490}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Departures.Tests", "src\Departures.Tests\Departures.Tests.csproj", "{5DD20705-FCB2-4832-B9A2-437C0EBF2490}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

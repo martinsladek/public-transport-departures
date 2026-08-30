@@ -1,7 +1,7 @@
 using System.Globalization;
 using Microsoft.Win32;
 
-namespace Odjezdy;
+namespace Departures;
 
 sealed class TrayApplicationContext : ApplicationContext
 {
@@ -111,6 +111,8 @@ sealed class TrayApplicationContext : ApplicationContext
             else if (!ok && !GtfsTimetable.ZipExists)
                 ShowBalloon(Strings.DownloadFailed);
         }
+
+        await StopCatalog.EnsureAsync(CancellationToken.None, forceDownload).ConfigureAwait(true);
 
         HashSet<string> stops = StopIds();
         bool sameStops = stops.SetEquals(_parsedStops);

@@ -1,8 +1,8 @@
-namespace Odjezdy;
+namespace Departures;
 
 static class Program
 {
-    private const string MutexName = @"Local\Odjezdy.SingleInstance";
+    private const string MutexName = @"Local\PublicTransportDepartures.SingleInstance";
 
     [STAThread]
     static void Main()

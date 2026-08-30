@@ -1,11 +1,12 @@
 using System.Diagnostics;
 using Microsoft.Win32;
 
-namespace Odjezdy;
+namespace Departures;
 
 static class Autostart
 {
-    public const string RunValueName = "Odjezdy";
+    public const string RunValueName = "PublicTransportDepartures";
+    public const string LegacyRunValueName = "Odjezdy";
 
     private const string RunSubKey = @"Software\Microsoft\Windows\CurrentVersion\Run";
     private const string ApprovedSubKey = @"Software\Microsoft\Windows\CurrentVersion\Explorer\StartupApproved\Run";
@@ -29,6 +30,9 @@ static class Autostart
         }
 
         SetApproved(enabled: true);
+        AppPaths.TryDeleteLegacyInstalledExe();
+        DeleteRunValue(LegacyRunValueName);
+        DeleteApprovedValue(LegacyRunValueName);
     }
 
     public static void Disable()
@@ -36,29 +40,50 @@ static class Autostart
         using (RegistryKey? run = Registry.CurrentUser.OpenSubKey(RunSubKey, writable: true))
         {
             run?.DeleteValue(RunValueName, throwOnMissingValue: false);
+            run?.DeleteValue(LegacyRunValueName, throwOnMissingValue: false);
         }
 
         using (RegistryKey? approved = Registry.CurrentUser.OpenSubKey(ApprovedSubKey, writable: true))
         {
             approved?.DeleteValue(RunValueName, throwOnMissingValue: false);
+            approved?.DeleteValue(LegacyRunValueName, throwOnMissingValue: false);
         }
 
         if (AppPaths.IsRunningFromInstallLocation)
             DeleteInstalledExeOnExit = true;
         else
+        {
             TryDeleteInstalledExe();
+            AppPaths.TryDeleteLegacyInstalledExe();
+        }
     }
 
     public static void ApplyOnLaunch()
     {
+        MigrateLegacyRunValue();
         if (HasRunValue)
         {
             RefreshInstalledCopyIfRegistered();
+            AppPaths.TryDeleteLegacyInstalledExe();
             return;
         }
 
         if (!AppPaths.IsRunningFromInstallLocation)
+        {
             TryDeleteInstalledExe();
+            AppPaths.TryDeleteLegacyInstalledExe();
+        }
+    }
+
+    private static void MigrateLegacyRunValue()
+    {
+        if (!HasRunValueNamed(LegacyRunValueName))
+            return;
+
+        bool wasDisabled = IsDisabledByWindowsNamed(LegacyRunValueName);
+        Enable();
+        if (wasDisabled)
+            SetApproved(enabled: false);
     }
 
     public static void DeleteInstalledExeAfterThisProcessExits()
@@ -89,26 +114,36 @@ static class Autostart
             InstallCurrentExe();
     }
 
-    private static bool HasRunValue
+    private static bool HasRunValue => HasRunValueNamed(RunValueName);
+
+    private static bool HasRunValueNamed(string name)
     {
-        get
-        {
-            using RegistryKey? run = Registry.CurrentUser.OpenSubKey(RunSubKey);
-            return run?.GetValue(RunValueName) is string { Length: > 0 };
-        }
+        using RegistryKey? run = Registry.CurrentUser.OpenSubKey(RunSubKey);
+        return run?.GetValue(name) is string { Length: > 0 };
     }
 
-    private static bool IsDisabledByWindows
-    {
-        get
-        {
-            using RegistryKey? approved = Registry.CurrentUser.OpenSubKey(ApprovedSubKey);
-            if (approved?.GetValue(RunValueName) is not byte[] data || data.Length == 0)
-                return false;
+    private static bool IsDisabledByWindows => IsDisabledByWindowsNamed(RunValueName);
 
-            byte flag = data[0];
-            return flag is 0x03 or 0x07;
-        }
+    private static bool IsDisabledByWindowsNamed(string name)
+    {
+        using RegistryKey? approved = Registry.CurrentUser.OpenSubKey(ApprovedSubKey);
+        if (approved?.GetValue(name) is not byte[] data || data.Length == 0)
+            return false;
+
+        byte flag = data[0];
+        return flag is 0x03 or 0x07;
+    }
+
+    private static void DeleteRunValue(string name)
+    {
+        using RegistryKey? run = Registry.CurrentUser.OpenSubKey(RunSubKey, writable: true);
+        run?.DeleteValue(name, throwOnMissingValue: false);
+    }
+
+    private static void DeleteApprovedValue(string name)
+    {
+        using RegistryKey? approved = Registry.CurrentUser.OpenSubKey(ApprovedSubKey, writable: true);
+        approved?.DeleteValue(name, throwOnMissingValue: false);
     }
 
     private static void SetApproved(bool enabled)

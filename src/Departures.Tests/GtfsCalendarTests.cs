@@ -1,6 +1,6 @@
 using Xunit;
 
-namespace Odjezdy.Tests;
+namespace Departures.Tests;
 
 public class GtfsCalendarTests
 {

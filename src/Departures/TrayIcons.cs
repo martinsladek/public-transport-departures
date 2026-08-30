@@ -3,7 +3,7 @@ using System.Drawing.Imaging;
 using System.Drawing.Text;
 using System.Runtime.InteropServices;
 
-namespace Odjezdy;
+namespace Departures;
 
 static class TrayIcons
 {

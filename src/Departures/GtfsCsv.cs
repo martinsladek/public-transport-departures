@@ -1,6 +1,6 @@
 using System.Text;
 
-namespace Odjezdy;
+namespace Departures;
 
 static class GtfsCsv
 {

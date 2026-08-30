@@ -3,7 +3,7 @@ using System.Net.Http.Headers;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
-namespace Odjezdy;
+namespace Departures;
 
 enum BoardFetchStatus
 {
@@ -102,7 +102,7 @@ static class GolemioClient
     {
         var client = new HttpClient { Timeout = TimeSpan.FromSeconds(12) };
         client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
-        client.DefaultRequestHeaders.UserAgent.ParseAdd("Odjezdy/0.1 (+https://www.martinsladek.com/)");
+        client.DefaultRequestHeaders.UserAgent.ParseAdd("Departures/0.2 (+https://www.martinsladek.com/)");
         return client;
     }
 

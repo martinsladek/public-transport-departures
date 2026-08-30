@@ -21,9 +21,9 @@ jobs:
           dotnet-version: "8.0.x"
 
       - name: Publish
-        run: dotnet publish src/Odjezdy/Odjezdy.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -p:EnableCompressionInSingleFile=true -o dist
+        run: dotnet publish src/Departures/Departures.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -p:EnableCompressionInSingleFile=true -o dist
 
       - name: Create GitHub Release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: gh release create "${{ github.ref_name }}" "dist/Odjezdy.exe#Odjezdy.exe" --title "${{ github.ref_name }}" --generate-notes
+        run: gh release create "${{ github.ref_name }}" "dist/PublicTransportDepartures.exe#PublicTransportDepartures.exe" --title "${{ github.ref_name }}" --generate-notes
