@@ -1,0 +1,18 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net8.0-windows10.0.19041.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <UseWindowsForms>true</UseWindowsForms>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <ApplicationHighDpiMode>PerMonitorV2</ApplicationHighDpiMode>
+    <InvariantGlobalization>false</InvariantGlobalization>
+    <AssemblyName>Odjezdy</AssemblyName>
+    <RootNamespace>Odjezdy</RootNamespace>
+    <Product>Odjezdy</Product>
+    <Description>A Windows tray utility that shows the next PID departure from one stop</Description>
+    <NeutralLanguage>en</NeutralLanguage>
+    <DebugType>embedded</DebugType>
+  </PropertyGroup>
+</Project>

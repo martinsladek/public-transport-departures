@@ -1,0 +1,13 @@
+{
+  "golemioApiKey": "",
+  "activeWatchId": "example",
+  "watches": [
+    {
+      "id": "example",
+      "label": "Example · 22",
+      "stopId": "U1040Z1P",
+      "routeShortName": "22",
+      "headsignContains": "Braník"
+    }
+  ]
+}
