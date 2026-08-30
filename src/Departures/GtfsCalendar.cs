@@ -1,4 +1,4 @@
-namespace Odjezdy;
+namespace Departures;
 
 public sealed class GtfsCalendar
 {

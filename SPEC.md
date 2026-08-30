@@ -1,4 +1,4 @@
-# Odjezdy — specification
+# Departures — specification
 
 Hand this file to a coding agent with: **Implement this specification on Windows 10.**
 
@@ -10,9 +10,9 @@ A tiny Windows 10 desktop utility that lives only in the **notification area** (
 
 | Item | Value |
 |---|---|
-| Product name | Odjezdy |
-| Assembly / EXE name | `Odjezdy.exe` |
-| Config / install folder | `%LocalAppData%\Odjezdy\` (stable, never localized) |
+| Product name | **Departures** (English UI). Czech UI: **Odjezdy**. |
+| Assembly / EXE name | `PublicTransportDepartures.exe` |
+| Config / install folder | `%LocalAppData%\PublicTransportDepartures\` (stable, never localized) |
 | Author | Martin Sladek |
 | Website | https://www.martinsladek.com/ |
 | Repository | https://github.com/martinsladek/public-transport-departures |
@@ -28,7 +28,7 @@ This is **not** an IDOS-style journey planner (no “any route from A to B”, n
 ### Default — static GTFS (no account)
 
 - Download [https://data.pid.cz/PID_GTFS.zip](https://data.pid.cz/PID_GTFS.zip) (CC-BY, credit PID / ROPID).
-- Store the zip under `%LocalAppData%\Odjezdy\gtfs\`. Do **not** keep the unpacked `stop_times.txt` (~100+ MB) on disk.
+- Store the zip under `%LocalAppData%\PublicTransportDepartures\gtfs\`. Do **not** keep the unpacked `stop_times.txt` (~100+ MB) on disk.
 - Stream-parse the zip, keep only rows for the configured stop pillars, and resolve upcoming departures locally (calendar, calendar exceptions, GTFS times past 24:00 for night service).
 - Refresh the zip about **once a day** (the feed is generated each morning). If the download fails, keep using the last zip.
 - First launch with no zip: download in the background. Grey icon and a balloon (“Downloading timetable…”) until a cache exists. Do not freeze the tray.
@@ -40,20 +40,21 @@ No user registration. No API key required for scheduled times.
 
 - If the user pastes their own Golemio API key in Settings, also query Golemio departure boards for the **active** watch (~every 45 seconds).
 - When that call returns matching departures, use the **predicted** time (delays). Otherwise keep the GTFS schedule.
-- The key lives only in `%LocalAppData%\Odjezdy\config.json`. Never commit it, never bake it into the EXE.
+- The key lives only in `%LocalAppData%\PublicTransportDepartures\config.json`. Never commit it, never bake it into the EXE.
 - Do **not** ship a shared key, and do **not** proxy Golemio through a server without written permission from the provider.
 - End users must not be required to register. The key is an optional extra for delays.
-
-Register a personal key at https://api.golemio.cz/api-keys (optional).
+- Settings shows a **?** next to **Optional live delays**. That opens a short help dialog (optional live delays; one link to https://api.golemio.cz/api-keys; confirm the email if new, create a key, paste it here). After the dialog closes, focus the key field. Do **not** build a multi-step register/login wizard.
 
 ### Identity
 
-- Stop identity is the PID **GTFS `stop_id`** of a concrete **stop pillar** (sloupek), for example `U1040Z101P`.
-- A human stop name is not enough. Lists: [PID open data](https://pid.cz/o-systemu/opendata/), map: [pid.cz/zastavky-pid](https://pid.cz/zastavky-pid/).
+- Stop identity is the PID **GTFS `stop_id`** of a concrete **stop pillar** (sloupek), for example `U1040Z101P`. A stop name alone is not a watch.
+- Users pick that pillar in Settings by typing the stop **name** (diacritics-insensitive), choosing one of the few pillars at that stop, then optionally a line and a destination from that pillar’s catalogue.
+- Catalogue: [https://data.pid.cz/stops/json/stops.json](https://data.pid.cz/stops/json/stops.json), cached under `%LocalAppData%\PublicTransportDepartures\gtfs\stops.json`. Refresh on the same daily cadence as the GTFS zip. If the download fails, keep using the last file.
+- Backup map: [pid.cz/zastavky-pid](https://pid.cz/zastavky-pid/). Do not dump every stop in the region into one combo box.
 
 ## Watch model
 
-`%LocalAppData%\Odjezdy\config.json`:
+`%LocalAppData%\PublicTransportDepartures\config.json`:
 
 ```json
 {
@@ -81,7 +82,7 @@ Register a personal key at https://api.golemio.cz/api-keys (optional).
 
 On first launch, if `config.json` is missing, write a copy of the repo `config.example.json` into LocalAppData. Do not overwrite an existing file.
 
-If an older build left `config.json` in `%AppData%\Odjezdy\`, move it to LocalAppData on first load and remove the empty roaming folder.
+If an older build left data in `%LocalAppData%\Odjezdy\`, move that folder to `%LocalAppData%\PublicTransportDepartures\` (config, `gtfs`, leftover EXE). If `config.json` is still in `%AppData%\Odjezdy\`, move it into the current LocalAppData folder and remove the empty roaming folder. Rewrite a leftover Run value named `Odjezdy` to `PublicTransportDepartures`.
 
 Do not use Roaming: the EXE is large, and the optional API key is machine-local.
 
@@ -148,19 +149,29 @@ Rules:
 
 A simple modal WinForms dialog (`FixedDialog`, not in the taskbar). No main window besides this and About.
 
-- List of watches. **Add**, **Edit**, **Remove**.
-- Add/Edit fields: label, **from** (`stopId`), optional **line**, optional **to** (headsign substring).
-- Optional Golemio API key (password-style or plain text is fine). Empty = scheduled GTFS only.
-- **Start with Windows** checkbox. Read live registry state when the dialog opens. Apply the change only on OK (Cancel leaves autostart as it was).
-- **Update timetable** starts a GTFS download now (otherwise the daily refresh is enough).
-- OK saves `config.json` and reloads departures. Cancel discards in-dialog edits.
-- The Add/Edit watch dialog must size to its content (labels and OK/Cancel fully visible). Do not clip buttons with a too-small fixed height.
+Visual sections as `GroupBox` blocks with space between them (not HTML-style horizontal rules):
 
-v2 does **not** include a stop-name search picker. The from field is the GTFS pillar id; the dialog may show a short hint and the PID map URL.
+1. **Watches** — list, **Add**, **Edit**, **Remove**.
+2. **Live delays** — first line: **Optional live delays** with a **?** help button beside it. Next line: **Golemio API key** and the key field on the same row (password-style is fine; the box fills the remaining width). Empty key = scheduled GTFS only.
+3. **App startup** — one checkbox: **Start app with Windows**. Read live registry state when the dialog opens. Apply the change only on OK (Cancel leaves autostart as it was).
+4. **Timetable** — short note that PID publishes a new timetable each morning (around 4:00) and this app downloads it about once a day, then **Update timetable** (GTFS and stop-catalogue now).
+
+OK saves `config.json` and reloads departures. Cancel discards in-dialog edits.
+
+### Add / Edit watch
+
+A second modal (`FixedDialog`, sized to its content — labels and OK/Cancel fully visible). Do not clip buttons with a too-small fixed height.
+
+1. Type a stop **name**. Search is diacritics-insensitive (`andel` finds Anděl). Do not list every stop in one combo.
+2. Pick a matching stop (typically a short list).
+3. Pick a **pillar** (typically 2–8). This sets `stopId`.
+4. Optionally pick a **line** and a **destination** from that pillar’s catalogue (`routeShortName`, `headsignContains`). Empty = any.
+5. Optional **label**. If empty, use `{stop name} · {line}` or the stop name.
+6. A link to the PID stop map as a backup, plus an optional “or paste a GTFS pillar id” field for map users and catalogue outages. That field is not the primary path.
 
 ### About dialog
 
-Standard modal WinForms dialog (`FixedDialog`, no maximize/minimize, not in the taskbar). Product name stays **Odjezdy**. Tagline, credit, data credit, and link labels come from `Strings.cs` for the current UI language.
+Standard modal WinForms dialog (`FixedDialog`, no maximize/minimize, not in the taskbar). Product name is **Departures** in English and **Odjezdy** in Czech. Tagline, credit, data credit, and link labels come from `Strings.cs` for the current UI language.
 
 English canonical copy:
 
@@ -177,7 +188,7 @@ Clickable links (labels are localized; URLs are not):
 | Website | https://www.martinsladek.com/ |
 | GitHub | https://github.com/martinsladek/public-transport-departures |
 
-OK button closes the dialog. Product name, GitHub, and OK stay untranslated.
+OK button closes the dialog. GitHub and OK stay untranslated.
 
 ### Language
 
@@ -185,7 +196,7 @@ Read `CultureInfo.CurrentUICulture.TwoLetterISOLanguageName`. UI strings live in
 
 `en` (default), `cs`
 
-Any other Windows language falls back to English. Product name stays **Odjezdy** in every locale. README, SPEC, and GitHub stay English only.
+Any other Windows language falls back to English. Product name is **Departures** in English and **Odjezdy** in Czech. README, SPEC, and GitHub stay English only.
 
 ## Autostart
 
@@ -193,15 +204,15 @@ Optional, off by default. No admin rights. Portable until the user opts in.
 
 **Enable**
 
-1. Copy the currently running EXE to `%LocalAppData%\Odjezdy\Odjezdy.exe` (skip if already running from that path).
-2. Write `HKCU\Software\Microsoft\Windows\CurrentVersion\Run` value `Odjezdy` = quoted path to that copy.
-3. Write `HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\StartupApproved\Run` value `Odjezdy` as enabled (`0x02…`), so Task Manager / Settings → Apps → Startup agree.
+1. Copy the currently running EXE to `%LocalAppData%\PublicTransportDepartures\PublicTransportDepartures.exe` (skip if already running from that path).
+2. Write `HKCU\Software\Microsoft\Windows\CurrentVersion\Run` value `PublicTransportDepartures` = quoted path to that copy.
+3. Write `HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\StartupApproved\Run` value `PublicTransportDepartures` as enabled (`0x02…`), so Task Manager / Settings → Apps → Startup agree. Remove leftover `Odjezdy` Run / Approved values.
 
 **Disable**
 
 1. Delete the Run value and the StartupApproved value. Autostart is off immediately (next logon will not start the app). Keep `config.json` and the GTFS zip.
 2. Delete the installed EXE now if this process is **not** that file.
-3. If this process **is** the installed EXE, Windows will not delete a running image. Mark it for deletion and remove it ~1s after Exit via `cmd timeout & del`. Re-checking Start with Windows before Exit cancels that deletion.
+3. If this process **is** the installed EXE, Windows will not delete a running image. Mark it for deletion and remove it ~1s after Exit via `cmd timeout & del`. Re-checking **Start app with Windows** before Exit cancels that deletion.
 
 On a later portable launch, if Run is not registered, delete any leftover installed EXE.
 
@@ -215,7 +226,7 @@ On launch, if Run is registered and this process is a different file than the in
 
 ## Process
 
-Single instance via mutex `Local\Odjezdy.SingleInstance`. A second launch exits silently.
+Single instance via mutex `Local\PublicTransportDepartures.SingleInstance`. A second launch exits silently.
 
 ## Technical stack (required)
 
@@ -225,25 +236,25 @@ Single instance via mutex `Local\Odjezdy.SingleInstance`. A second launch exits 
 | UI | WinForms, `ApplicationContext` + `NotifyIcon` (no main form) |
 | Target | `net8.0-windows10.0.19041.0` |
 | Output | `WinExe`, self-contained single-file `win-x64` |
-| HTTP | `HttpClient` for the PID GTFS zip and optional Golemio. No third-party transit SDK. |
+| HTTP | `HttpClient` for the PID GTFS zip, the PID stops catalogue, and optional Golemio. No third-party transit SDK. |
 
 Publish:
 
 ```powershell
-dotnet publish src/Odjezdy/Odjezdy.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -p:EnableCompressionInSingleFile=true -o dist
+dotnet publish src/Departures/Departures.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -p:EnableCompressionInSingleFile=true -o dist
 ```
 
 The published EXE must run on a PC that has no .NET SDK and no extra runtimes installed.
 
 Do not use trimming (`PublishTrimmed=false`).
 
-No installer. Distribution of the binary is **GitHub Releases**, never git. A Release is created by GitHub Actions on `windows-latest` when a tag matching `v*` is pushed (`Odjezdy.exe` asset). The `/releases/latest/download/Odjezdy.exe` URL then points at that Release.
+No installer. Distribution of the binary is **GitHub Releases**, never git. A Release is created by GitHub Actions on `windows-latest` when a tag matching `v*` is pushed (`PublicTransportDepartures.exe` asset). The `/releases/latest/download/PublicTransportDepartures.exe` URL then points at that Release.
 
 ## Suggested layout
 
 ```
-src/Odjezdy/
-  Odjezdy.csproj
+src/Departures/
+  Departures.csproj
   app.manifest
   Program.cs
   Strings.cs
@@ -255,12 +266,15 @@ src/Odjezdy/
   AboutForm.cs
   SettingsForm.cs
   WatchEditForm.cs
+  GolemioHelpForm.cs
   TrayDialog.cs
   DepartureClock.cs
   DepartureSelector.cs
   GtfsTimetable.cs
+  StopCatalog.cs
+  TextSearch.cs
   GolemioClient.cs
-src/Odjezdy.Tests/
+src/Departures.Tests/
 ```
 
 `.gitignore`: `bin/`, `obj/`, `dist/`, `.vs/`, `*.user`, `config.json`, `.env`.
@@ -274,7 +288,7 @@ These were considered and deferred or rejected:
 - Windows Location / GPS / geofencing
 - Multiple locations / behavior profiles (a location will later only select which watch is active)
 - IDOS-style journey planner, transfers, or “any path from A to B”
-- Stop-name search picker (type the GTFS pillar id in v2)
+- Golemio multi-step register / login wizard (the **?** help and one portal link are enough)
 - More than one *active* watch at a time
 - Other Czech regions (IDS JMK, IREDO, …)
 - Walking time to the stop (`walkMinutes`)
@@ -293,7 +307,7 @@ No administrator rights are required.
 - Displayed minutes change at the correct second
 - Hover tooltip and left-click balloon
 - Right-click menu lists watches and selects the active one
-- Settings dialog: add/edit/remove watches, optional Golemio key, Start with Windows, update timetable
+- Settings dialog: grouped sections; add/edit/remove watches by stop name then pillar; optional Golemio key with short **?** help; App startup checkbox; update timetable
 - About and Settings are single-instance (`TrayDialog.ShowOnce`)
 - Scheduled departures work with no API key (local GTFS)
 - Optional Golemio key overlays predicted times when present
@@ -301,5 +315,5 @@ No administrator rights are required.
 - UI localized for `en` and `cs` (other Windows languages fall back to English)
 - Optional Start with Windows via HKCU Run + StartupApproved, EXE copy only when enabled
 - First-run `config.json` in LocalAppData from `config.example.json`
-- Self-contained `dist/Odjezdy.exe` builds and runs without a local SDK
+- Self-contained `dist/PublicTransportDepartures.exe` builds and runs without a local SDK
 - Source in git; `dist/`, GTFS zip, and API keys not in git

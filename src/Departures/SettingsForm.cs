@@ -1,4 +1,4 @@
-namespace Odjezdy;
+namespace Departures;
 
 sealed class SettingsForm : Form
 {
@@ -22,67 +22,109 @@ sealed class SettingsForm : Form
         AutoScaleMode = AutoScaleMode.Font;
         Font = SystemFonts.MessageBoxFont;
         Padding = new Padding(16);
-        ClientSize = new Size(460, 500);
+        ClientSize = new Size(500, 640);
 
-        var layout = new TableLayoutPanel
+        var root = new TableLayoutPanel
         {
             Dock = DockStyle.Fill,
             ColumnCount = 1,
-            RowCount = 9
+            RowCount = 5
         };
-        layout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
-        layout.RowStyles.Add(new RowStyle(SizeType.AutoSize));
-        layout.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
-        layout.RowStyles.Add(new RowStyle(SizeType.AutoSize));
-        layout.RowStyles.Add(new RowStyle(SizeType.AutoSize));
-        layout.RowStyles.Add(new RowStyle(SizeType.AutoSize));
-        layout.RowStyles.Add(new RowStyle(SizeType.AutoSize));
-        layout.RowStyles.Add(new RowStyle(SizeType.AutoSize));
-        layout.RowStyles.Add(new RowStyle(SizeType.AutoSize));
-        layout.RowStyles.Add(new RowStyle(SizeType.AutoSize));
+        root.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
+        root.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
+        root.RowStyles.Add(new RowStyle(SizeType.AutoSize));
+        root.RowStyles.Add(new RowStyle(SizeType.AutoSize));
+        root.RowStyles.Add(new RowStyle(SizeType.AutoSize));
+        root.RowStyles.Add(new RowStyle(SizeType.AutoSize));
 
-        layout.Controls.Add(new Label { Text = Strings.Watches, AutoSize = true, Margin = new Padding(0, 0, 0, 4) }, 0, 0);
-
+        var watches = new GroupBox { Text = Strings.Watches, Dock = DockStyle.Fill, Padding = new Padding(10) };
+        var watchLayout = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 1, RowCount = 2 };
+        watchLayout.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
+        watchLayout.RowStyles.Add(new RowStyle(SizeType.AutoSize));
         _list = new ListBox { Dock = DockStyle.Fill, IntegralHeight = false };
-        layout.Controls.Add(_list, 0, 1);
-
-        var watchButtons = new FlowLayoutPanel
-        {
-            AutoSize = true,
-            WrapContents = false,
-            Margin = new Padding(0, 8, 0, 12)
-        };
+        _list.DoubleClick += (_, _) => EditWatch();
+        var watchButtons = new FlowLayoutPanel { AutoSize = true, WrapContents = false, Margin = new Padding(0, 8, 0, 0) };
         var add = new Button { Text = Strings.Add, AutoSize = true };
         var edit = new Button { Text = Strings.Edit, AutoSize = true };
         var remove = new Button { Text = Strings.Remove, AutoSize = true };
         add.Click += (_, _) => AddWatch();
         edit.Click += (_, _) => EditWatch();
         remove.Click += (_, _) => RemoveWatch();
-        _list.DoubleClick += (_, _) => EditWatch();
         watchButtons.Controls.Add(add);
         watchButtons.Controls.Add(edit);
         watchButtons.Controls.Add(remove);
-        layout.Controls.Add(watchButtons, 0, 2);
+        watchLayout.Controls.Add(_list, 0, 0);
+        watchLayout.Controls.Add(watchButtons, 0, 1);
+        watches.Controls.Add(watchLayout);
+        root.Controls.Add(watches, 0, 0);
 
-        layout.Controls.Add(new Label { Text = Strings.GolemioKey, AutoSize = true, Margin = new Padding(0, 4, 0, 2) }, 0, 3);
-        _key = new TextBox
+        var golemio = new GroupBox { Text = Strings.GolemioSection, Dock = DockStyle.Top, AutoSize = true, Padding = new Padding(10), Margin = new Padding(0, 12, 0, 0) };
+        var golemioLayout = new TableLayoutPanel { Dock = DockStyle.Fill, AutoSize = true, ColumnCount = 1 };
+        var optionalRow = new FlowLayoutPanel
         {
-            Dock = DockStyle.Fill,
-            Text = config.GolemioApiKey ?? "",
-            UseSystemPasswordChar = true
+            AutoSize = true,
+            WrapContents = false,
+            Margin = new Padding(0, 0, 0, 8)
         };
-        layout.Controls.Add(_key, 0, 4);
+        optionalRow.Controls.Add(new Label
+        {
+            Text = Strings.GolemioOptional,
+            AutoSize = true,
+            Margin = new Padding(0, 5, 8, 0)
+        });
+        var help = new Button
+        {
+            Text = "?",
+            Width = 28,
+            Height = 26,
+            Margin = new Padding(0),
+            AccessibleName = Strings.GolemioHelp
+        };
+        help.Click += (_, _) => ShowGolemioHelp();
+        optionalRow.Controls.Add(help);
+        golemioLayout.Controls.Add(optionalRow, 0, 0);
 
+        var keyRow = new TableLayoutPanel { AutoSize = true, ColumnCount = 2, Dock = DockStyle.Fill, Margin = new Padding(0) };
+        keyRow.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));
+        keyRow.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
+        var keyLabel = new Label
+        {
+            Text = Strings.GolemioKey,
+            AutoSize = true,
+            Anchor = AnchorStyles.Left,
+            Margin = new Padding(0, 4, 8, 0)
+        };
+        _key = new TextBox { Dock = DockStyle.Fill, Text = config.GolemioApiKey ?? "", UseSystemPasswordChar = true };
+        keyRow.Controls.Add(keyLabel, 0, 0);
+        keyRow.Controls.Add(_key, 1, 0);
+        golemioLayout.Controls.Add(keyRow, 0, 1);
+        golemio.Controls.Add(golemioLayout);
+        root.Controls.Add(golemio, 0, 1);
+
+        var startup = new GroupBox { Text = Strings.AutostartSection, Dock = DockStyle.Top, AutoSize = true, Padding = new Padding(10), Margin = new Padding(0, 12, 0, 0) };
+        var startupLayout = new TableLayoutPanel { Dock = DockStyle.Fill, AutoSize = true, ColumnCount = 1 };
         _startWithWindows = new CheckBox
         {
             Text = Strings.StartWithWindows,
             AutoSize = true,
             Checked = Autostart.IsEnabled,
-            Margin = new Padding(0, 12, 0, 4)
+            Margin = new Padding(0),
+            Padding = new Padding(0)
         };
-        layout.Controls.Add(_startWithWindows, 0, 5);
+        startupLayout.Controls.Add(_startWithWindows, 0, 0);
+        startup.Controls.Add(startupLayout);
+        root.Controls.Add(startup, 0, 2);
 
-        var update = new Button { Text = Strings.UpdateTimetable, AutoSize = true, Margin = new Padding(0, 12, 0, 8) };
+        var timetable = new GroupBox { Text = Strings.TimetableSection, Dock = DockStyle.Top, AutoSize = true, Padding = new Padding(10), Margin = new Padding(0, 12, 0, 0) };
+        var timetableLayout = new TableLayoutPanel { Dock = DockStyle.Fill, AutoSize = true, ColumnCount = 1 };
+        var timetableHint = new Label
+        {
+            Text = Strings.TimetableHint,
+            AutoSize = true,
+            MaximumSize = new Size(440, 0),
+            Margin = new Padding(0, 0, 0, 8)
+        };
+        var update = new Button { Text = Strings.UpdateTimetable, AutoSize = true };
         update.Click += async (_, _) =>
         {
             update.Enabled = false;
@@ -95,26 +137,38 @@ sealed class SettingsForm : Form
                 update.Enabled = true;
             }
         };
-        layout.Controls.Add(update, 0, 6);
+        timetableLayout.Controls.Add(timetableHint, 0, 0);
+        timetableLayout.Controls.Add(update, 0, 1);
+        timetable.Controls.Add(timetableLayout);
+        root.Controls.Add(timetable, 0, 3);
 
         var buttons = new FlowLayoutPanel
         {
             FlowDirection = FlowDirection.RightToLeft,
-            Dock = DockStyle.Fill,
             AutoSize = true,
-            WrapContents = false
+            WrapContents = false,
+            Dock = DockStyle.Fill,
+            Margin = new Padding(0, 14, 0, 0)
         };
         var ok = new Button { Text = Strings.Ok, DialogResult = DialogResult.OK, AutoSize = true, Padding = new Padding(12, 3, 12, 3) };
         var cancel = new Button { Text = Strings.Cancel, DialogResult = DialogResult.Cancel, AutoSize = true, Padding = new Padding(12, 3, 12, 3) };
         ok.Click += (_, _) => Apply();
         buttons.Controls.Add(ok);
         buttons.Controls.Add(cancel);
-        layout.Controls.Add(buttons, 0, 7);
+        root.Controls.Add(buttons, 0, 4);
 
-        Controls.Add(layout);
+        Controls.Add(root);
         AcceptButton = ok;
         CancelButton = cancel;
         RefreshList();
+    }
+
+    private void ShowGolemioHelp()
+    {
+        using var help = new GolemioHelpForm();
+        help.ShowDialog(this);
+        _key.Focus();
+        _key.SelectAll();
     }
 
     private void RefreshList()

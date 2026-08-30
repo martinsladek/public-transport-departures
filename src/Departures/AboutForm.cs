@@ -1,6 +1,6 @@
 using System.Diagnostics;
 
-namespace Odjezdy;
+namespace Departures;
 
 sealed class AboutForm : Form
 {

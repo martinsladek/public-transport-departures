@@ -1,7 +1,7 @@
 using System.IO.Compression;
 using System.Net.Http.Headers;
 
-namespace Odjezdy;
+namespace Departures;
 
 static class GtfsTimetable
 {
@@ -300,7 +300,7 @@ static class GtfsTimetable
     private static HttpClient CreateClient()
     {
         var client = new HttpClient { Timeout = TimeSpan.FromMinutes(5) };
-        client.DefaultRequestHeaders.UserAgent.ParseAdd("Odjezdy/0.2 (+https://www.martinsladek.com/)");
+        client.DefaultRequestHeaders.UserAgent.ParseAdd("Departures/0.2 (+https://www.martinsladek.com/)");
         client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/zip"));
         return client;
     }

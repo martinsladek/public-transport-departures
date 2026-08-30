@@ -1,6 +1,6 @@
 using System.Text.Json;
 
-namespace Odjezdy;
+namespace Departures;
 
 public sealed class WatchConfig
 {
@@ -60,6 +60,7 @@ sealed class AppConfig
     {
         try
         {
+            AppPaths.MigrateLegacyLocalData();
             MigrateLegacyConfig();
             EnsureCreated();
             string path = AppPaths.ConfigFile;

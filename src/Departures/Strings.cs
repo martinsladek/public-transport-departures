@@ -1,14 +1,17 @@
 using System.Globalization;
 
-namespace Odjezdy;
+namespace Departures;
 
 static class Strings
 {
     private static readonly string Lang =
         CultureInfo.CurrentUICulture.TwoLetterISOLanguageName.ToLowerInvariant();
 
-    public const string ProductName = "Odjezdy";
-    public const string ConfigFolderName = "Odjezdy";
+    public static string ProductName => L("Departures", "Odjezdy");
+    public const string ConfigFolderName = "PublicTransportDepartures";
+    public const string LegacyConfigFolderName = "Odjezdy";
+    public const string ExeFileName = "PublicTransportDepartures.exe";
+    public const string LegacyExeFileName = "Odjezdy.exe";
 
     public const string WebsiteUrl = "https://www.martinsladek.com/";
     public const string GitHubUrl = "https://github.com/martinsladek/public-transport-departures";
@@ -17,7 +20,7 @@ static class Strings
 
     public static string Settings => L("Settings", "Nastavení");
 
-    public static string StartWithWindows => L("Start with Windows", "Spouštět s Windows");
+    public static string StartWithWindows => L("Start app with Windows", "Spouštět aplikaci s Windows");
 
     public static string About => L("About", "O aplikaci");
 
@@ -37,25 +40,71 @@ static class Strings
 
     public static string WatchLabel => L("Label", "Název");
 
-    public static string WatchFrom => L("From (GTFS stop id)", "Odkud (GTFS id sloupku)");
+    public static string WatchSearch => L("Stop name", "Název zastávky");
+
+    public static string WatchMatches => L("Matching stops", "Nalezené zastávky");
+
+    public static string WatchPillar => L("Stop pillar", "Sloupek");
 
     public static string WatchLine => L("Line (optional)", "Linka (volitelně)");
 
     public static string WatchTo => L("To (destination, optional)", "Kam (cíl, volitelně)");
 
-    public static string WatchHint => L(
-        "Pillar ids: pid.cz/zastavky-pid",
-        "Id sloupku: pid.cz/zastavky-pid");
+    public static string AnyLine => L("(any line)", "(kterákoli linka)");
 
-    public static string GolemioKey => L(
-        "Golemio API key (optional, delays)",
-        "Golemio API klíč (volitelně, zpoždění)");
+    public static string AnyDestination => L("(any destination)", "(kterýkoli směr)");
+
+    public static string WatchHint => L(
+        "Type a stop name, then pick the pillar, line, and destination.",
+        "Napište název zastávky a vyberte sloupek, linku a směr.");
+
+    public static string WatchStopIdFallback => L(
+        "Or paste a GTFS pillar id",
+        "Nebo vložte GTFS id sloupku");
+
+    public static string StopMap => L("Stop map", "Mapa zastávek");
+
+    public const string StopMapUrl = "https://pid.cz/zastavky-pid/";
+
+    public static string LoadingStops => L("Loading stops…", "Načítám zastávky…");
+
+    public static string StopsLoadFailed => L(
+        "Could not load the stop list. Check the network and try again.",
+        "Seznam zastávek se nepodařilo načíst. Zkontrolujte síť a zkuste to znovu.");
+
+    public static string GolemioSection => L("Live delays", "Živá zpoždění");
+
+    public static string GolemioOptional => L("Optional live delays", "Volitelná živá zpoždění");
+
+    public static string GolemioKey => L("Golemio API key", "Golemio API klíč");
+
+    public static string GolemioHelp => L("Help", "Nápověda");
+
+    public static string GolemioHelpTitle => L("Golemio API key", "Golemio API klíč");
+
+    public static string GolemioHelpBody => L(
+        "Optional. Scheduled departures work without it. A personal Golemio key adds live delays for the active watch.",
+        "Volitelné. Plánované odjezdy fungují i bez něj. Vlastní Golemio klíč přidá živá zpoždění u aktivního sledování.");
+
+    public static string GolemioHelpSteps => L(
+        "Open the link, confirm the email if you are new, create an API key, then paste it here.",
+        "Otevřete odkaz, při první registraci potvrďte e-mail, vytvořte API klíč a vložte ho sem.");
+
+    public const string GolemioKeysUrl = "https://api.golemio.cz/api-keys";
+
+    public static string AutostartSection => L("App startup", "Spuštění aplikace");
+
+    public static string TimetableSection => L("Timetable", "Jízdní řád");
+
+    public static string TimetableHint => L(
+        "PID publishes a new timetable each morning (around 4:00). This app downloads it about once a day.",
+        "PID vydává nový jízdní řád každé ráno (kolem 4:00). Aplikace ho stáhne zhruba jednou denně.");
 
     public static string UpdateTimetable => L("Update timetable", "Aktualizovat jízdní řád");
 
     public static string EditWatch => L("Watch", "Sledovaný odjezd");
 
-    public static string StopIdRequired => L("Enter a GTFS stop id.", "Zadejte GTFS identifikátor zastávky.");
+    public static string StopIdRequired => L("Select a stop pillar.", "Vyberte zastávkový sloupek.");
 
     public static string NoStopConfigured => L("No stop configured", "Není nastavená zastávka");
 

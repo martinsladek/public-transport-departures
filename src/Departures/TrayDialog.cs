@@ -1,4 +1,4 @@
-namespace Odjezdy;
+namespace Departures;
 
 /// <summary>
 /// Tray apps keep pumping window messages while a modal is open, so a second
